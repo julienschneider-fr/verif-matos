@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Scanner QR — Vérification Matériel V19</title>
+<title>Scanner QR — Vérification Matériel V20</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
 :root{--red:#e50914;--navy:#06172b;--panel:#0d2745;--white:#fff;--muted:#b9cbe0}
@@ -11,7 +11,7 @@
 </style>
 </head>
 <body>
-<div class="wrap"><div class="title">📷 SCANNER QR V19</div><div class="hint">Autorisez la caméra, puis placez le QR code dans le cadre.</div><div class="panel"><div id="reader"></div><div id="status" class="status">Initialisation de la caméra…</div><button onclick="goBack()">↩️ RETOUR</button></div></div>
+<div class="wrap"><div class="title">📷 SCANNER QR V20</div><div class="hint">Autorisez la caméra, puis placez le QR code dans le cadre.</div><div class="panel"><div id="reader"></div><div id="status" class="status">Initialisation de la caméra…</div><button onclick="goBack()">↩️ RETOUR</button></div></div>
 <script>
 let scanner=null,done=false,starting=false;
 const params=new URLSearchParams(location.search);
@@ -19,7 +19,17 @@ const returnUrl=params.get('return')||'';
 function status(t,c){const e=document.getElementById('status');e.textContent=t;e.className='status '+(c||'');}
 function goBack(){if(scanner){scanner.stop().catch(()=>{}).finally(()=>{if(returnUrl) location.href=returnUrl; else history.back();});}else if(returnUrl) location.href=returnUrl;else history.back();}
 function success(text){if(done)return;done=true;text=String(text||'').trim();status('✅ QR détecté : '+text+' — Retour à l’application…','ok');if(scanner){scanner.stop().catch(()=>{}).finally(()=>redirect(text));}else redirect(text);}
-function redirect(text){if(!returnUrl)return;const sep=returnUrl.includes('?')?'&':'?';location.href=returnUrl+sep+'qr='+encodeURIComponent(text);}
+function redirect(text){
+  if(window.opener && !window.opener.closed){
+    try{window.opener.postMessage({type:'QR_SCAN',qr:String(text||'').trim()},'*');}catch(e){console.warn('postMessage target failed',e);}
+    try{window.close();}catch(e){}
+    // Certains navigateurs mobiles refusent window.close(). Dans ce cas, le message
+    // a déjà été envoyé à l'application ; on laisse le scanner affiché quelques instants.
+    setTimeout(()=>{ if(!document.hidden) status('✅ QR envoyé à l’application. Vous pouvez fermer cet onglet.','ok'); }, 700);
+    return;
+  }
+  if(returnUrl){const sep=returnUrl.includes('?')?'&':'?';location.href=returnUrl+sep+'qr='+encodeURIComponent(text);}
+}
 function fail(e){console.error(e);status('❌ Impossible de démarrer la caméra : '+(e&&e.message?e.message:String(e)),'err');}
 async function startWithConstraints(){
   scanner=new Html5Qrcode('reader');
