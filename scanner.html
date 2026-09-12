@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Scanner QR — Vérification Matériel</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{--red:#e50914;--navy:#06172b;--panel:#0d2745;--white:#fff;--muted:#b9cbe0}
+*{box-sizing:border-box}body{margin:0;background:var(--navy);color:#fff;font-family:system-ui,Arial,sans-serif;min-height:100vh}.wrap{width:min(1080px,100%);margin:auto;padding:24px}.title{font-size:42px;font-weight:950;margin:10px 0 22px;text-align:center}.hint{font-size:27px;color:var(--muted);text-align:center;line-height:1.4;margin-bottom:18px}.panel{background:var(--panel);border:2px solid #214467;border-radius:30px;padding:22px}#reader{width:100%}#reader video{width:100%!important;border-radius:22px}button{width:100%;min-height:150px;margin-top:20px;border:0;border-radius:24px;background:#213b58;color:#fff;font-size:34px;font-weight:950}.status{font-size:30px;text-align:center;padding:18px;line-height:1.4}.ok{background:#16b94d;border-radius:20px}.err{background:#e50914;border-radius:20px}</style>
+</head>
+<body><div class="wrap"><div class="title">📷 SCANNER QR</div><div class="hint">Autorisez la caméra, puis placez le QR code dans le cadre.</div><div class="panel"><div id="reader"></div><div id="status" class="status">Initialisation de la caméra…</div><button onclick="goBack()">↩️ RETOUR</button></div></div>
+<script>
+let scanner=null,done=false;
+const params=new URLSearchParams(location.search);
+const returnUrl=params.get('return')||'';
+function status(t,c){const e=document.getElementById('status');e.textContent=t;e.className='status '+(c||'');}
+function goBack(){if(returnUrl) location.href=returnUrl; else history.back();}
+function success(text){if(done)return;done=true;text=String(text||'').trim();status('✅ QR détecté : '+text+' — Retour à l’application…','ok');if(scanner){scanner.stop().catch(()=>{}).finally(()=>redirect(text));}else redirect(text);}
+function redirect(text){if(!returnUrl)return;const sep=returnUrl.includes('?')?'&':'?';location.href=returnUrl+sep+'qr='+encodeURIComponent(text);}
+function fail(e){status('❌ '+(e&&e.message?e.message:e),'err');}
+async function start(){try{if(!window.Html5Qrcode)throw new Error('Lecteur QR indisponible');scanner=new Html5Qrcode('reader');const cameras=await Html5Qrcode.getCameras();if(!cameras||!cameras.length)throw new Error('Aucune caméra détectée');const camera=cameras[0];status('📷 Caméra prête : '+(camera.label||'caméra 0'));await scanner.start(camera.id,{fps:10,qrbox:{width:280,height:280},aspectRatio:1.0,showTorchButtonIfSupported:true},success,()=>{});}catch(e){fail(e);}}
+start();
+</script></body></html>
